@@ -1,0 +1,119 @@
+#!/bin/bash
+#mfproc [-u username] [-s S|R|Z]
+
+echo -e "Name\t\t\tPID\tPPID\tUID\tGID\tState"
+
+if [ "$#" -eq "0" ]
+then
+        ls /proc | egrep "[0-9]" | while read process
+        do
+                name=`(cat "/proc/$process/status" | egrep "^Name" | cut -f2 -d$'\t') 2>/dev/null`
+                processID=`(cat "/proc/$process/status" | egrep "^Pid" | cut -f2 -d$'\t') 2>/dev/null`
+                parentProcessID=`(cat "/proc/$process/status" | egrep "^PPid" | cut -f2 -d$'\t') 2>/dev/null`
+                userID=`(cat "/proc/$process/status" | egrep "^Uid" | cut -f2 -d$'\t') 2>/dev/null`
+                groupID=`(cat "/proc/$process/status" | egrep "^Gid" | cut -f2 -d$'\t') 2>/dev/null`
+                state=`(cat "/proc/$process/status" | egrep "^State" | cut -f2 -d$'\t') 2>/dev/null`
+
+                if [ "${#name}" -ge "8" ]
+                then
+                        echo -e "$name\t\t$processID\t$parentProcessID\t$userID\t$groupID\t$state"
+				elif [ "${#name}" -le "7" ] && [ "${#name}" -gt "0" ]
+				then
+					echo -e "$name\t\t\t$processID\t$parentProcessID\t$userID\t$groupID\t$state" 
+				fi
+	done
+	exit 0
+elif [ "$#" -eq "2" ]
+then
+	if [ "$1" == "-u" ]
+	then
+		if [ "`egrep "^$2" /etc/passwd`" != "" ]		
+		then	
+			userSpecified=`id -u $2`
+			ls /proc | egrep "[0-9]" | while read process
+			do
+				userID=`(cat "/proc/$process/status" | egrep "^Uid" | cut -f2 -d$'\t') 2>/dev/null`
+				if [ "$userID" == "$userSpecified" ]
+				then
+					name=`(cat "/proc/$process/status" | egrep "^Name" | cut -f2 -d$'\t') 2>/dev/null`
+					processID=`(cat "/proc/$process/status" | egrep "^Pid" | cut -f2 -d$'\t') 2>/dev/null`
+					parentProcessID=`(cat "/proc/$process/status" | egrep "^PPid" | cut -f2 -d$'\t') 2>/dev/null`
+					userID=`(cat "/proc/$process/status" | egrep "^Uid" | cut -f2 -d$'\t') 2>/dev/null`
+					groupID=`(cat "/proc/$process/status" | egrep "^Gid" | cut -f2 -d$'\t') 2>/dev/null`
+					state=`(cat "/proc/$process/status" | egrep "^State" | cut -f2 -d$'\t') 2>/dev/null`
+
+					if [ "${#name}" -ge "8" ]
+					then
+							echo -e "$name\t\t$processID\t$parentProcessID\t$userID\t$groupID\t$state"
+					elif [ "${#name}" -le "7" ] && [ "${#name}" -gt "0" ]
+					then
+						echo -e "$name\t\t\t$processID\t$parentProcessID\t$userID\t$groupID\t$state" 
+					fi
+				fi
+			done
+		exit 0
+		else
+		exit 1
+		fi
+	elif [ "$1" == "-s" ]
+	then
+		if [ "$2" == "S" ] || [ "$2" == "R" ] || [ "$2" == "Z" ]
+		then
+			stateSpecified="$2"
+			ls /proc | egrep "[0-9]" | while read process
+			do
+				state=`(cat "/proc/$process/status" | egrep "^State" | cut -f2 -d$'\t') 2>/dev/null`
+				if [ "$state" == "$stateSpecified (sleeping)" ] || [ "$state" == "$stateSpecified (running)" ] || [ "$state" == "$stateSpecified (zombie)" ]
+				then
+					name=`(cat "/proc/$process/status" | egrep "^Name" | cut -f2 -d$'\t') 2>/dev/null`
+					processID=`(cat "/proc/$process/status" | egrep "^Pid" | cut -f2 -d$'\t') 2>/dev/null`
+					parentProcessID=`(cat "/proc/$process/status" | egrep "^PPid" | cut -f2 -d$'\t') 2>/dev/null`
+					groupID=`(cat "/proc/$process/status" | egrep "^Gid" | cut -f2 -d$'\t') 2>/dev/null`
+					
+					if [ "${#name}" -ge "8" ]
+					then
+							echo -e "$name\t\t$processID\t$parentProcessID\t$userID\t$groupID\t$state"
+					elif [ "${#name}" -le "7" ] && [ "${#name}" -gt "0" ]
+					then
+						echo -e "$name\t\t\t$processID\t$parentProcessID\t$userID\t$groupID\t$state" 
+					fi
+				fi
+			done
+		exit 0
+		else
+		exit 2
+		fi
+	fi
+elif [ "$#" -eq "4" ]
+then
+	if [ "`egrep "^$2" /etc/passwd`" != "" ] && ([ "$4" == "S" ] || [ "$4" == "R" ] || [ "$4" == "Z" ])
+	then
+		userSpecified=`id -u $2`
+		stateSpecified="$4"
+		ls /proc | egrep "[0-9]" | while read process
+		do
+			userID=`(cat "/proc/$process/status" | egrep "^Uid" | cut -f2 -d$'\t') 2>/dev/null`
+			state=`(cat "/proc/$process/status" | egrep "^State" | cut -f2 -d$'\t') 2>/dev/null`
+			if [ "$userID" == "$userSpecified" ] && ([ "$state" == "$stateSpecified (sleeping)" ] || [ "$state" == "$stateSpecified (running)" ] || [ "$state" == "$stateSpecified (zombie)" ])
+			then
+				name=`(cat "/proc/$process/status" | egrep "^Name" | cut -f2 -d$'\t') 2>/dev/null`
+				processID=`(cat "/proc/$process/status" | egrep "^Pid" | cut -f2 -d$'\t') 2>/dev/null`
+				parentProcessID=`(cat "/proc/$process/status" | egrep "^PPid" | cut -f2 -d$'\t') 2>/dev/null`
+				groupID=`(cat "/proc/$process/status" | egrep "^Gid" | cut -f2 -d$'\t') 2>/dev/null`
+
+					if [ "${#name}" -ge "8" ]
+					then
+							echo -e "$name\t\t$processID\t$parentProcessID\t$userID\t$groupID\t$state"
+					elif [ "${#name}" -le "7" ] && [ "${#name}" -gt "0" ]
+					then
+						echo -e "$name\t\t\t$processID\t$parentProcessID\t$userID\t$groupID\t$state" 
+					fi
+			fi
+		done
+	exit 0
+	else
+	exit 3
+	fi
+else
+echo "Bad syntax"
+fi
